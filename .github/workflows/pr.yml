@@ -15,6 +15,11 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
+    - name: Install pcap library
+      run: |
+        sudo apt-get update
+        sudo apt-get -y install libpcap-dev
+
     - uses: actions/cache@v4
       with:
         path: |
