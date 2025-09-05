@@ -11,7 +11,7 @@ path = "src/bin/main.rs"
 anyhow = "1.0.99"
 clap = { version = "4.5.45", features = ["derive", "string"] }
 etherparse = "0.19.0"
-log = { version = "0.4.27" }
+log = { version = "0.4.28" }
 pcap = "2.3.0"
 structured-logger = { version = "1.0.4" }
 thiserror = { version = "2.0.12" }
