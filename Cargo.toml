@@ -14,7 +14,7 @@ etherparse = "0.19.0"
 log = { version = "0.4.28" }
 pcap = "2.3.0"
 structured-logger = { version = "1.0.4" }
-thiserror = { version = "2.0.16" }
+thiserror = { version = "2.0.17" }
 
 [build-dependencies]
 built = { version = "0.8.0" }
