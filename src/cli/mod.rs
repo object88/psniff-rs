@@ -9,7 +9,7 @@ use crate::{cli::args::ArgLevelFilter, config::ListenConfig};
 #[command(arg_required_else_help = true)]
 pub struct Cli {
 
-  #[arg(default_value = "warn", long)]
+  #[arg(default_value = "info", long)]
   pub log_level: ArgLevelFilter,
 
   #[command(subcommand)]
@@ -25,6 +25,9 @@ pub enum Commands {
 
   /// Listen to one or more interfaces
   Listen(ArgsListen),
+
+  /// Run
+  Run{},
 
   Version,
 }
