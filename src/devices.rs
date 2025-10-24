@@ -1,10 +1,11 @@
 use std::{collections::HashMap, net::IpAddr};
 
 use anyhow::{Context, Result};
-use etherparse::{Icmpv4Header, Icmpv4Slice, Icmpv6Slice, Ipv4Slice, Ipv6Slice, NetSlice, SlicedPacket, TcpSlice, TransportSlice, UdpSlice};
-use pcap::{Capture, Device};
+use etherparse::{Icmpv4Slice, Icmpv6Slice, Ipv4Slice, Ipv6Slice, NetSlice, SlicedPacket, TcpSlice, TransportSlice, UdpSlice};
+use pcap::{Capture, Device, Inactive};
+use tokio::sync::broadcast::Receiver;
 
-use crate::config::ListenConfig;
+use crate::{config::ListenConfig, runtime::{BlockingRunnable, BlockingRunnableBuilder}};
 
 // If we are going to track all traffic between particular IP addresses, the port data will need to be removed.
 #[derive(Debug, PartialEq, Eq, Hash)]
@@ -18,6 +19,98 @@ struct TcpSession {
 struct State {
   seq: u32,
   packet_count: u32,
+}
+
+pub struct Builder {
+  // cfg: HttpConfig
+  iface_name: Option<String>,
+}
+
+pub struct Devices {
+  cap: Capture<Inactive>,
+}
+
+pub fn new(/*cfg: HttpConfig*/) -> Builder {
+  return Builder{
+    iface_name: None,
+  }
+}
+
+impl Builder {
+  pub fn set_interface(mut self, iface_name: String) -> Self {
+    self.iface_name = Some(iface_name);
+    self
+  }
+}
+
+impl BlockingRunnableBuilder for Builder {
+  fn build(self: Box<Self>) -> Result<Box<dyn crate::runtime::BlockingRunnable + Send>, Box<dyn std::error::Error>> {
+
+    let device = match self.iface_name { // cfg.interfaces.unwrap_or(vec![]).first() {
+      Some(iface) => {
+        Device::list()?.into_iter().find(|d| d.name == *iface).with_context(|| format!("interface '{}' was not found", iface))?
+      },
+      None => {
+        return Err("no interfaces".into());
+      },
+    };
+
+    // device
+    let cap = Capture::from_device(device)?.promisc(true).timeout(100);
+
+    Ok(Box::new(Devices {
+      cap: cap,
+    }))
+  }
+}
+
+impl BlockingRunnable for Devices {
+  fn run(self: Box<Self>, cancel_rx: Receiver<()>) -> Result<(), Box< dyn std::error::Error>> {
+    let mut cap = self.cap.open()?;
+    // let mut cap = Capture::from_device(self.device)?.promisc(true).timeout(100).open()?;
+
+    // sequences
+    let mut sequences: HashMap<TcpSession, State> = HashMap::new();
+
+    let (mut packet_count, mut dropped_count, mut if_dropped_count) = (0, 0, 0);
+
+    loop {
+      match cap.next_packet() {
+        Ok(packet) => {
+          match SlicedPacket::from_ethernet(packet.data) {
+            Ok(value) => {
+              analyze_packet(value, &mut sequences);
+
+            }, // analyze_packet(value),
+            Err(err) => println!("Error parsing packet: {:?}", err),
+          }
+        },
+        Err(pcap::Error::TimeoutExpired) => {
+          // Just try again on timeout - this makes the program more responsive
+          let stats = cap.stats().unwrap();
+          if packet_count != stats.received || dropped_count != stats.dropped || if_dropped_count != stats.if_dropped {
+            println!("Received: {}, dropped: {}, if_dropped: {}", stats.received, stats.dropped, stats.if_dropped);
+          }
+
+          packet_count = stats.received;
+          dropped_count = stats.dropped;
+          if_dropped_count = stats.if_dropped;
+          continue;
+        },
+        Err(e) => {
+          println!("Error: {}", e);
+          continue;
+        },
+      }
+
+      // Check to see if we need to exit
+      if !cancel_rx.is_empty() || cancel_rx.is_closed() {
+        break;
+      }
+    }
+
+    Ok(())
+  }
 }
 
 pub fn listen(cfg: ListenConfig) -> Result<()> {
@@ -169,15 +262,8 @@ fn process_ipv6_no_transport(sequences: &mut HashMap<TcpSession, State>, ip_head
 
 
 fn analyze_packet(packet: SlicedPacket, sequences: &mut HashMap<TcpSession, State>) {
-  // Analyze link layer
-  // if let Some(link) = &packet.link {
-  //   println!("Link layer: {:?}", link);
-  // }
-
   match &packet.net {
-    Some(NetSlice::Arp(_arp_header)) => {
-      println!("ARP");
-    },
+    Some(NetSlice::Arp(_arp_header)) => { /* Do nothing */ },
     Some(NetSlice::Ipv4(ipv4_header)) => {
       match &packet.transport {
         Some(TransportSlice::Icmpv4(icmpv4_header)) => process_ipv4_icmpv4(icmpv4_header),
@@ -196,9 +282,7 @@ fn analyze_packet(packet: SlicedPacket, sequences: &mut HashMap<TcpSession, Stat
         None => process_ipv6_no_transport(sequences, ipv6_header),
       }
     },
-    None => {
-      println!("No net on packet")
-    }
+    None => { /* Do nothing */ }
   }
 }
 

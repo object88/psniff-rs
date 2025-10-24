@@ -9,12 +9,17 @@ path = "src/bin/main.rs"
 
 [dependencies]
 anyhow = "1.0.100"
+async-trait = { version = "0.1.89" }
+axum = { version = "0.8.4" }
 clap = { version = "4.5.50", features = ["derive", "string"] }
 etherparse = "0.19.0"
+futures = { version = "0.3.31" }
 log = { version = "0.4.28" }
 pcap = "2.3.0"
 structured-logger = { version = "1.0.5" }
 thiserror = { version = "2.0.17" }
+tokio = { version = "1.47.1", features = ["macros", "rt-multi-thread", "signal", "sync"] }
+tokio-util = { version = "0.7.16" }
 
 [build-dependencies]
 built = { version = "0.8.0" }
