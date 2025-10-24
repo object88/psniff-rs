@@ -1,10 +1,19 @@
-name: pull-request
+name: lint
 permissions:
   contents: read
 
 on:
+  push:
+    branches:
+      - main
   pull_request:
-    branches: [ "main" ]
+    branches:
+      - main
+    types:
+      - labeled
+      - opened
+      - reopened
+      - synchronize
 
 env:
   CARGO_TERM_COLOR: always
@@ -12,13 +21,9 @@ env:
 jobs:
   build:
     runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'push' || (github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'lint')) }}
     steps:
       - uses: actions/checkout@v4
-
-      - name: Install pcap library
-        run: |
-          sudo apt-get update
-          sudo apt-get -y install libpcap-dev
 
       - uses: actions/cache@v4
         with:
@@ -30,8 +35,8 @@ jobs:
             target/
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
-      - name: Build
-        run: cargo build --verbose
+      - name: Lint
+        run: cargo clippy
       
-      - name: Run tests
-        run: cargo test --verbose
+      - name: Lint (release)
+        run: cargo clippy --release
