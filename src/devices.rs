@@ -200,7 +200,7 @@ fn process_ipv4_tcp(sequences: &mut HashMap<TcpSession, State>, ip_header: &Ipv4
         println!("= IPv4-TCP [{}:{} -> {}:{}] SYN={} ACK={} FIN={} RST={} seq={seq}, frag={}, bytes={}, count={}", tcp_session.src_ip, tcp_session.src_port, tcp_session.dst_ip, tcp_session.dst_port, tcp_header.syn(), tcp_header.ack(), tcp_header.fin(), tcp_header.rst(), ip_header.is_payload_fragmented(), tcp_header.payload().len(), last_state.packet_count);
       } else if seq > last_state.seq {
         println!("> IPv4-TCP [{}:{} -> {}:{}] SYN={} ACK={} FIN={} RST={} seq={seq}, frag={}, bytes={}, count={}", tcp_session.src_ip, tcp_session.src_port, tcp_session.dst_ip, tcp_session.dst_port, tcp_header.syn(), tcp_header.ack(), tcp_header.fin(), tcp_header.rst(), ip_header.is_payload_fragmented(), tcp_header.payload().len(), last_state.packet_count);
-      } else if seq > last_state.seq {
+      } else if seq < last_state.seq {
         println!("Out of order packet!");
       }
       last_state.packet_count += 1;
@@ -225,7 +225,7 @@ fn process_ipv4_udp(ip_slice: &Ipv4Slice, udp_header: &UdpSlice) {
   println!("IPv4-UDP [{} -> {}] [{} -> {}] bytes={}", ip_header.source_addr(), ip_header.destination_addr(), udp_header.source_port(), udp_header.destination_port(), udp_header.payload().len());
 }
 
-fn process_ipv4_no_transport(sequences: &mut HashMap<TcpSession, State>, ip_header: &Ipv4Slice) {
+fn process_ipv4_no_transport(_sequences: &mut HashMap<TcpSession, State>, ip_header: &Ipv4Slice) {
   let ip_number = ip_header.payload_ip_number();
   println!("IPv4-no-transport {} {}", ip_number.keyword_str().unwrap_or("---"), ip_number.protocol_str().unwrap_or("unknown"));
   // ip_header.header().
@@ -242,10 +242,10 @@ fn process_ipv6_icmpv6(icmpv6_header: &Icmpv6Slice) {
   println!("ICMPv6, type={:?}", icmp_header.icmp_type);
 }
 
-fn process_ipv6_tcp(sequences: &mut HashMap<TcpSession, State>, ip_header: &Ipv6Slice, tcp_header: &TcpSlice) {
-  let src_port = tcp_header.source_port();
-  let dst_port = tcp_header.destination_port();
-  let seq = tcp_header.sequence_number();
+fn process_ipv6_tcp(_sequences: &mut HashMap<TcpSession, State>, _ip_header: &Ipv6Slice, tcp_header: &TcpSlice) {
+  let _src_port = tcp_header.source_port();
+  let _dst_port = tcp_header.destination_port();
+  let _seq = tcp_header.sequence_number();
   println!("IPv6-TCP");
 }
 
@@ -254,7 +254,7 @@ fn process_ipv6_udp(ip_slice: &Ipv6Slice, udp_header: &UdpSlice) {
   println!("IPv6-UDP [{} -> {}] [{} -> {}] bytes={}", ip_header.source_addr(), ip_header.destination_addr(), udp_header.source_port(), udp_header.destination_port(), udp_header.payload().len());
 }
 
-fn process_ipv6_no_transport(sequences: &mut HashMap<TcpSession, State>, ip_header: &Ipv6Slice) {
+fn process_ipv6_no_transport(_sequences: &mut HashMap<TcpSession, State>, ip_header: &Ipv6Slice) {
   let ip_number = ip_header .payload().ip_number;
   println!("IPv6-no-transport {} {}", ip_number.keyword_str().unwrap_or("---"), ip_number.protocol_str().unwrap_or("unknown"));
   // ip_header.header().
