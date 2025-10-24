@@ -42,8 +42,8 @@ pub struct ArgsListen {
 
 }
 
-impl Into<ListenConfig> for &ArgsListen {
-  fn into(self) -> ListenConfig {
-    ListenConfig { interfaces: self.interfaces.clone() }
+impl From<&ArgsListen> for ListenConfig {
+  fn from(val: &ArgsListen) -> Self {
+    ListenConfig { interfaces: val.interfaces.clone() }
   }
 }

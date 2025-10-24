@@ -25,7 +25,7 @@ pub struct Http {
 }
 
 pub fn new(/*cfg: HttpConfig*/) -> Builder {
-  return Builder{
+  Builder{
     // cfg
   }
 }
