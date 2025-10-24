@@ -1,0 +1,57 @@
+name: build main branch
+permissions:
+  contents: read
+  statuses: write
+
+on:
+  push:
+    branches:
+      - "main"
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install pcap library
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends --yes libpcap-dev
+
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Lint
+        run: cargo clippy
+
+      - name: Build
+        run: cargo build --target release --verbose
+      
+      - name: Run tests
+        run: cargo test --verbose
+
+      - name: Set final commit status
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.repos.createCommitStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              sha: context.sha,
+              state: (context.job.status == 'success' ? 'success' : 'error'),
+              description: (context.job.status == 'success' ? 'Complete' : 'Failed'),
+              context: 'Build complete',
+              target_url: `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`
+            });
