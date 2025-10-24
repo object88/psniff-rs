@@ -8,9 +8,9 @@ use log::LevelFilter;
 #[derive(Clone)]
 pub struct ArgLevelFilter(pub LevelFilter);
 
-impl Into<LevelFilter> for ArgLevelFilter {
-  fn into(self) -> LevelFilter {
-    self.0
+impl From<ArgLevelFilter> for LevelFilter {
+  fn from(val: ArgLevelFilter) -> Self {
+    val.0
   }
 }
 

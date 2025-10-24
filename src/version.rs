@@ -4,5 +4,5 @@ pub mod built_info {
 }
 
 pub fn dump() {
-  print!("name: {}\n", built_info::PKG_NAME);
+  println!("name: {}", built_info::PKG_NAME);
 }

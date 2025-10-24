@@ -31,7 +31,7 @@ pub struct Devices {
 }
 
 pub fn new(/*cfg: HttpConfig*/) -> Builder {
-  return Builder{
+  Builder{
     iface_name: None,
   }
 }
@@ -59,7 +59,7 @@ impl BlockingRunnableBuilder for Builder {
     let cap = Capture::from_device(device)?.promisc(true).timeout(100);
 
     Ok(Box::new(Devices {
-      cap: cap,
+      cap,
     }))
   }
 }
@@ -114,7 +114,7 @@ impl BlockingRunnable for Devices {
 }
 
 pub fn listen(cfg: ListenConfig) -> Result<()> {
-  let device = match cfg.interfaces.unwrap_or(vec![]).first() {
+  let device = match cfg.interfaces.unwrap_or_default().first() {
     Some(iface) => {
       Device::list()?.into_iter().find(|d| d.name == *iface).with_context(|| format!("interface '{}' was not found", iface))?
     },
@@ -196,11 +196,11 @@ fn process_ipv4_tcp(sequences: &mut HashMap<TcpSession, State>, ip_header: &Ipv4
     Some(last_state) => {
 
       // Sequence is already started
-      if seq == (*last_state).seq {
+      if seq == last_state.seq {
         println!("= IPv4-TCP [{}:{} -> {}:{}] SYN={} ACK={} FIN={} RST={} seq={seq}, frag={}, bytes={}, count={}", tcp_session.src_ip, tcp_session.src_port, tcp_session.dst_ip, tcp_session.dst_port, tcp_header.syn(), tcp_header.ack(), tcp_header.fin(), tcp_header.rst(), ip_header.is_payload_fragmented(), tcp_header.payload().len(), last_state.packet_count);
-      } else if seq > (*last_state).seq {
+      } else if seq > last_state.seq {
         println!("> IPv4-TCP [{}:{} -> {}:{}] SYN={} ACK={} FIN={} RST={} seq={seq}, frag={}, bytes={}, count={}", tcp_session.src_ip, tcp_session.src_port, tcp_session.dst_ip, tcp_session.dst_port, tcp_header.syn(), tcp_header.ack(), tcp_header.fin(), tcp_header.rst(), ip_header.is_payload_fragmented(), tcp_header.payload().len(), last_state.packet_count);
-      } else if seq > (*last_state).seq {
+      } else if seq > last_state.seq {
         println!("Out of order packet!");
       }
       last_state.packet_count += 1;
@@ -211,7 +211,7 @@ fn process_ipv4_tcp(sequences: &mut HashMap<TcpSession, State>, ip_header: &Ipv4
       println!("IPv4-TCP [{}:{} -> {}:{}] SYN={} ACK={} FIN={} RST={} seq={seq}, frag={}, bytes={}", tcp_session.src_ip, tcp_session.src_port, tcp_session.dst_ip, tcp_session.dst_port, tcp_header.syn(), tcp_header.ack(), tcp_header.fin(), tcp_header.rst(), ip_header.is_payload_fragmented(), tcp_header.payload().len());
       let s = State {
         packet_count: 1,
-        seq: seq,
+        seq,
       };
       sequences.insert(tcp_session, s);
     }
@@ -295,7 +295,7 @@ pub fn list() -> Result<()> {
   };
 
   for d in list.into_iter() {
-    print!("{} ({}), addressses {:?}, flags: {:?}\n", d.name, d.desc.unwrap_or_default(), d.addresses, d.flags)
+    println!("{} ({}), addressses {:?}, flags: {:?}", d.name, d.desc.unwrap_or_default(), d.addresses, d.flags)
   }
 
   Ok(())
