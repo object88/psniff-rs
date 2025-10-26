@@ -15,6 +15,10 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
+      - name: Disable mandb updating
+        run: |
+          sudo rm /var/lib/man-db/auto-update
+
       - name: Install pcap library
         run: |
           sudo apt-get update
