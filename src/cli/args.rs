@@ -1,4 +1,4 @@
-use clap::{builder::PossibleValue, ValueEnum};
+use clap::{ValueEnum, builder::PossibleValue};
 // use common::config::Config;
 // use dirs::{config_local_dir, home_dir};
 use log::LevelFilter;
@@ -9,27 +9,29 @@ use log::LevelFilter;
 pub struct ArgLevelFilter(pub LevelFilter);
 
 impl From<ArgLevelFilter> for LevelFilter {
-  fn from(val: ArgLevelFilter) -> Self {
-    val.0
-  }
+	fn from(val: ArgLevelFilter) -> Self {
+		val.0
+	}
 }
 
 // ValueEnum is necessary for EnumValueParser
 impl ValueEnum for ArgLevelFilter {
-  fn value_variants<'a>() -> &'a [Self] {
-    &[
-      ArgLevelFilter(LevelFilter::Off),
-      ArgLevelFilter(LevelFilter::Error),
-      ArgLevelFilter(LevelFilter::Warn),
-      ArgLevelFilter(LevelFilter::Info),
-      ArgLevelFilter(LevelFilter::Debug),
-      ArgLevelFilter(LevelFilter::Trace)
-    ]
-  }
+	fn value_variants<'a>() -> &'a [Self] {
+		&[
+			ArgLevelFilter(LevelFilter::Off),
+			ArgLevelFilter(LevelFilter::Error),
+			ArgLevelFilter(LevelFilter::Warn),
+			ArgLevelFilter(LevelFilter::Info),
+			ArgLevelFilter(LevelFilter::Debug),
+			ArgLevelFilter(LevelFilter::Trace),
+		]
+	}
 
-  fn to_possible_value(&self) -> Option<PossibleValue> {
-    Some(PossibleValue::new(Into::<LevelFilter>::into(self.0).to_string().to_lowercase()))
-  }
+	fn to_possible_value(&self) -> Option<PossibleValue> {
+		Some(PossibleValue::new(
+			Into::<LevelFilter>::into(self.0).to_string().to_lowercase(),
+		))
+	}
 }
 
 // // pub struct Args<'a>{
@@ -126,7 +128,7 @@ impl ValueEnum for ArgLevelFilter {
 //           // clap::error::ErrorKind::Io => todo!(),
 //           // clap::error::ErrorKind::Format => todo!(),
 //           _ => {
-//             return Err(ArgsError::UnmatchedCommand(e));        
+//             return Err(ArgsError::UnmatchedCommand(e));
 //           },
 //         }
 //       }
@@ -150,13 +152,12 @@ impl ValueEnum for ArgLevelFilter {
 
 //     Ok(())
 
-
 //     // match self.c.try_get_matches().unwrap_or_else(|e| {
 //     //   return Err(ArgsError::UnmatchedCommand(e));
 //     // }).subcommand() {
 //     //   a => {
 //     //     let log_level_value: &LevelFilter = &a.get_one::<ArgLevelFilter>("loglevel").unwrap().0;
-        
+
 //     //     // self.cfg.server.kube_config.path = a.get_one::<PathBuf>("kubeconfig").unwrap().to_path_buf();
 
 //     //     self.log_level = *log_level_value;
