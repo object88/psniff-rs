@@ -1,0 +1,8 @@
+# format_generated_files = false
+hard_tabs = true
+match_block_trailing_comma = true
+# reorder_impl_items = true
+# group_imports = "StdExternalCrate"
+tab_spaces = 2
+use_field_init_shorthand = true
+# wrap_comments = true
