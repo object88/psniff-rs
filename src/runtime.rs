@@ -18,17 +18,6 @@ pub enum Error<T: std::error::Error> {
 	BuildError { inner_error: Box<T> },
 }
 
-// pub struct Built {
-//   runnable: impl Runnable,
-// }
-
-// impl Runnable for Built {
-//   #[must_use]
-//   #[allow(elided_named_lifetimes,clippy::type_complexity,clippy::type_repetition_in_bounds)]
-//   fn run<'life0,'async_trait>(&'life0 mut self,cancel_token:CancellationToken) ->  ::core::pin::Pin<Box<dyn ::core::future::Future<Output = ()> + ::core::marker::Send+'async_trait> >where 'life0:'async_trait,Self:'async_trait {
-//     self.runnable.run()
-//   }
-// }
 pub trait BlockingRunnable: Send {
 	fn run(self: Box<Self>, cancel_rx: Receiver<()>) -> Result<(), Box<dyn std::error::Error>>;
 }
@@ -38,15 +27,8 @@ pub trait Runnable: Send {
 	async fn run(&mut self, cancel_rx: Receiver<()>);
 }
 
-// impl<T: Runnable> Runnable for T {
-//   async fn run(&mut self, cancel_token: CancellationToken) {
-//     self.run(cancel_token);
-//   }
-// }
-
 pub trait BlockingRunnableBuilder: Send {
-	fn build(self: Box<Self>)
-	-> Result<Box<dyn BlockingRunnable + Send>, Box<dyn std::error::Error>>;
+	fn build(self: Box<Self>) -> Result<Box<dyn BlockingRunnable + Send>, Box<dyn std::error::Error>>;
 }
 
 #[async_trait]
@@ -63,7 +45,9 @@ pub fn blocking_build(
 	for r in results {
 		match r {
 			Ok(r) => v.push(r),
-			Err(_e) => {},
+			Err(_e) => {
+				error!("error building blocking: {}", _e.to_string())
+			},
 		}
 	}
 
@@ -82,7 +66,9 @@ pub async fn build(
 			Ok(r) => {
 				v.push(r);
 			},
-			Err(_e) => {},
+			Err(_e) => {
+				error!("error building async: {}", _e.to_string())
+			},
 		}
 	}
 
@@ -96,6 +82,7 @@ pub fn run(
 	// Create runtime for network listened
 	let rt = runtime::Builder::new_multi_thread()
 		.enable_io()
+		.enable_time()
 		.thread_name_fn(|| {
 			static ATOMIC_ID: AtomicUsize = AtomicUsize::new(0);
 			let id = ATOMIC_ID.fetch_add(1, Ordering::SeqCst);
@@ -111,6 +98,7 @@ pub fn run(
 		let blocking_runnables = match blocking_build(blocking_runnable_builders) {
 			Ok(x) => x,
 			Err(_e) => {
+				error!("failed to build one or more blocking runners: {}", _e.to_string());
 				return;
 			},
 		};
@@ -119,11 +107,13 @@ pub fn run(
 		let runnables = match build(runnable_builders).await {
 			Ok(x) => x,
 			Err(_e) => {
+				error!("failed to build one or more runners: {}", _e.to_string());
 				return; // Err(Error::BuildError{ inner_error: e });
 			},
 		};
 
-		// let cancel_token = CancellationToken::new();
+		info!("building complete");
+
 		let (shutdown_tx, _) = broadcast::channel::<()>(1);
 
 		let mut futures = JoinSet::new();
@@ -132,7 +122,13 @@ pub fn run(
 		for r in blocking_runnables {
 			let rx = shutdown_tx.subscribe();
 			futures.spawn_blocking(move || {
-				let _ = r.run(rx);
+				info!("starting blocking task");
+				match r.run(rx) {
+					Ok(_) => {},
+					Err(e) => {
+						error!("error in blocking runner: {}", e.to_string());
+					},
+				}
 			});
 		}
 
@@ -140,6 +136,7 @@ pub fn run(
 		for mut r in runnables {
 			let rx = shutdown_tx.subscribe();
 			futures.spawn(async move {
+				info!("starting async task");
 				r.run(rx).await;
 			});
 		}
