@@ -26,6 +26,12 @@ fn main() -> Result<()> {
 
 			let (sender, receiver) = tokio::sync::mpsc::channel::<devices::MovingPacket>(1024);
 
+			// Create guard at the start of your program (only when feature is enabled)
+			#[cfg(feature = "channels-console")]
+			let _guard = channels_console::ChannelsGuard::new();
+		
+			#[cfg(feature = "channels-console")]
+			let (sender, receiver) = channels_console::instrument!((sender, receiver), label = "packet-queue");
 
 			// Construct the packet listener builder
 			let listener_builder = listener::new()
@@ -39,7 +45,7 @@ fn main() -> Result<()> {
 				}
 			}
 				.add("/status/ready", get(|| async { "wat" }))
-				.add("/status", get(|State(state): State<AppState<'static, ()>>| async { "yup" }));
+				.add("/status", get(|State(_state): State<AppState<'static, ()>>| async { "yup" }));
 
 			let http_builder = http_s::new::<AppState<'static,()>>(rc.api_http)
 				.set_routes(route)
