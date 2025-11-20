@@ -213,7 +213,7 @@ pub fn listen(cfg: ListenConfig) -> Result<()> {
 		match cap.next_packet() {
 			Ok(packet) => {
 				match SlicedPacket::from_ethernet(packet.data) {
-					Ok(value) => {
+					Ok(_value) => {
 						// analyze_packet(value/*, &mut sequences */);
 						todo!();
 					}, // analyze_packet(value),

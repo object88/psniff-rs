@@ -24,7 +24,7 @@ pub trait BlockingRunnable: Send {
 
 #[async_trait]
 pub trait Runnable: Send {
-	async fn run(&mut self, cancel_rx: Receiver<()>);
+	async fn run(&mut self, cancel_rx: Receiver<()>) /* -> Self*/ ;
 }
 
 pub trait BlockingRunnableBuilder: Send {
