@@ -17,7 +17,7 @@ jobs:
 
       - name: Disable mandb updating
         run: |
-          sudo rm /var/lib/man-db/auto-update
+          sudo rm -f /var/lib/man-db/auto-update
 
       - name: Install pcap library
         run: |
