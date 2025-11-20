@@ -95,7 +95,7 @@ impl<F, Response, Error> Future for ResponseFuture<F> where F: Future<Output = R
 struct TimeoutError(());
 
 impl fmt::Display for TimeoutError {
-  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+  fn fmt(&self, _f: &mut fmt::Formatter<'_>) -> fmt::Result {
     todo!()
   }
 }
