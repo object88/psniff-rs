@@ -56,10 +56,8 @@ impl PacketHandler for Ipv4UdpListener {
   }
 
 	async fn handle_packet(&mut self, packet: SlicedPacket<'_>) {
-    if let Some(NetSlice::Ipv4(ipv4_header)) = &packet.net {
-      if let Some(TransportSlice::Udp(udp_header)) = &packet.transport {
-        process_ipv4_udp(ipv4_header, udp_header)
-      }
+    if let Some(NetSlice::Ipv4(ipv4_header)) = &packet.net && let Some(TransportSlice::Udp(udp_header)) = &packet.transport {
+      process_ipv4_udp(ipv4_header, udp_header)
     }
     
 		info!("Processed message {:?}", packet);

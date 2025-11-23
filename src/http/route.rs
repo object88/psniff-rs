@@ -13,7 +13,7 @@ pub fn new<S>() -> Result<Route<S>, Box<dyn std::error::Error>> where S: State +
   })
 }
 
-impl<'a, S> Route<S> where S: State + 'static {
+impl<S> Route<S> where S: State + 'static {
   pub fn add<H>(mut self, path: &str, f: H) -> Self 
     where
       H: Into<MethodRouter<S>>,
@@ -23,8 +23,8 @@ impl<'a, S> Route<S> where S: State + 'static {
   }
 }
 
-impl<S> Into<Router<S>> for Route<S> where S: State {
-  fn into(self) -> Router<S> {
-    self.router
+impl<S> From<Route<S>> for Router<S> where S: State {
+  fn from(val: Route<S>) -> Self {
+    val.router
   }
 }

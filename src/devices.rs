@@ -40,7 +40,7 @@ pub struct Devices {
 	senders: HashMap<Matcher, Sender<MovingPacket>>,
 }
 
-pub fn new<'a>(/*cfg: HttpConfig*/) -> Builder {
+pub fn new(/*cfg: HttpConfig*/) -> Builder {
 	Builder { 
 		iface_name: None,
 		senders: HashMap::new(),
@@ -145,7 +145,7 @@ impl BlockingRunnable for Devices {
 						}
 					};
 
-					let header_clone = packet.header.clone();
+					let header_clone = *packet.header;
 					let data_clone = packet.data.to_vec();
 					let p0 = MovingPacket {
 						header: header_clone,

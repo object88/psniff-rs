@@ -2,7 +2,6 @@ use std::{collections::HashMap, net::IpAddr};
 
 use async_trait::async_trait;
 use etherparse::{Ipv4Slice, NetSlice, SlicedPacket, TcpSlice, TransportSlice};
-use log::info;
 use tokio::sync::{broadcast, mpsc::Receiver};
 
 use crate::{devices::{self, MovingPacket}, packet_listeners::listener::{self, BuildError, PacketHandler}, runtime::{Runnable, RunnableBuilder}};
@@ -80,10 +79,8 @@ impl PacketHandler for Ipv4TcpListener {
 	async fn handle_packet(&mut self, packet: SlicedPacket<'_>) {
     self.packet_count += 1;
 
-    if let Some(NetSlice::Ipv4(ipv4_header)) = &packet.net {
-      if let Some(TransportSlice::Tcp(tcp_header)) = &packet.transport {
-        process_ipv4_tcp(&mut self.sequences, ipv4_header, tcp_header)
-      }
+    if let Some(NetSlice::Ipv4(ipv4_header)) = &packet.net && let Some(TransportSlice::Tcp(tcp_header)) = &packet.transport {
+      process_ipv4_tcp(&mut self.sequences, ipv4_header, tcp_header)
     }
   }
 }
