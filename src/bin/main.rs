@@ -24,7 +24,7 @@ fn main() -> Result<()> {
 			// Construct the state
 			let app_state = appstate::new::<'static>();
 
-			let (sender, receiver) = tokio::sync::mpsc::channel::<devices::MovingPacket>(1024);
+			let (ipv4_tcp_sender, ipv4_tcp_receiver) = tokio::sync::mpsc::channel::<devices::MovingPacket>(1024);
 			let (ipv4_udp_sender, ipv4_udp_receiver) = tokio::sync::mpsc::channel::<devices::MovingPacket>(1024);
 
 			// Create guard at the start of your program (only when feature is enabled)
@@ -39,7 +39,7 @@ fn main() -> Result<()> {
 
 			// Construct the packet listener builders
 			let ipv4_tcp_listener_builder = ipv4_tcp_listener::new()
-				.set_receiver(receiver);
+				.set_receiver(ipv4_tcp_receiver);
 
 			let ipv4_udp_listener_builder = ipv4_udp_listener::new()
 				.set_receiver(ipv4_udp_receiver);
@@ -61,7 +61,7 @@ fn main() -> Result<()> {
 			// Construct the network device listener
 			let d = devices::new()
 				.set_interface("en0".to_string())
-				.set_typed_sender(devices::Matcher::IPv4_TCP, sender)
+				.set_typed_sender(devices::Matcher::IPv4_TCP, ipv4_tcp_sender)
 				.set_typed_sender(devices::Matcher::IPv4_UDP, ipv4_udp_sender);
 
 			let blocking_v: Vec<Box<dyn BlockingRunnableBuilder>> = vec![Box::new(d)];
