@@ -92,7 +92,7 @@ impl<S> RunnableBuilder for Builder<S> where S: State {
 		return Ok(Box::new(Http {
 			app: r0,
 			listener: Some(listener),
-			s: s,
+			s,
 		}));
 	}
 }

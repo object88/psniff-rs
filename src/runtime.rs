@@ -46,7 +46,7 @@ pub fn blocking_build(
 		match r {
 			Ok(r) => v.push(r),
 			Err(_e) => {
-				error!("error building blocking: {}", _e.to_string())
+				error!("error building blocking: {}", _e)
 			},
 		}
 	}
@@ -67,7 +67,7 @@ pub async fn build(
 				v.push(r);
 			},
 			Err(_e) => {
-				error!("error building async: {}", _e.to_string())
+				error!("error building async: {}", _e)
 			},
 		}
 	}
@@ -98,7 +98,7 @@ pub fn run(
 		let blocking_runnables = match blocking_build(blocking_runnable_builders) {
 			Ok(x) => x,
 			Err(_e) => {
-				error!("failed to build one or more blocking runners: {}", _e.to_string());
+				error!("failed to build one or more blocking runners: {}", _e);
 				return;
 			},
 		};
@@ -107,7 +107,7 @@ pub fn run(
 		let runnables = match build(runnable_builders).await {
 			Ok(x) => x,
 			Err(_e) => {
-				error!("failed to build one or more runners: {}", _e.to_string());
+				error!("failed to build one or more runners: {}", _e);
 				return; // Err(Error::BuildError{ inner_error: e });
 			},
 		};
@@ -126,7 +126,7 @@ pub fn run(
 				match r.run(rx) {
 					Ok(_) => {},
 					Err(e) => {
-						error!("error in blocking runner: {}", e.to_string());
+						error!("error in blocking runner: {}", e);
 					},
 				}
 			});
