@@ -44,7 +44,7 @@ impl Clone for Interface {
 		Self {
 			name: self.name.clone(),
 			counts: Mutex::new(self.counts.lock().unwrap().clone()),
-			watching: self.watching.clone(),
+			watching: self.watching,
 		}
 	}
 }

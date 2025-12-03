@@ -10,6 +10,7 @@ use crate::{
 
 pub trait State: Clone + Default + Send + Sync {}
 
+#[derive(Default)]
 pub struct AppState {
 	pub interfaces: Arc<Mutex<HashSet<Arc<Interface>>>>,
 	pub packet_counts: HashMap<Matcher, Arc<Mutex<PacketCount>>>,
@@ -27,15 +28,6 @@ impl Clone for AppState {
 		Self {
 			interfaces: self.interfaces.clone(),
 			packet_counts: self.packet_counts.clone(),
-		}
-	}
-}
-
-impl Default for AppState {
-	fn default() -> Self {
-		Self {
-			interfaces: Default::default(),
-			packet_counts: Default::default(),
 		}
 	}
 }

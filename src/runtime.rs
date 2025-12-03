@@ -76,7 +76,7 @@ pub async fn build(
 	Ok(v)
 }
 
-pub fn run<'l>(
+pub fn run(
 	blocking_runnable_builders: impl IntoIterator<Item = Box<dyn BlockingRunnableBuilder>>,
 	runnable_builders: impl IntoIterator<Item = Box<dyn RunnableBuilder>>,
 ) -> Result<()> {
