@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::Arc};
 
 use anyhow::{Context, Result};
 use etherparse::{NetSlice, SlicedPacket, TransportSlice};
@@ -7,8 +7,7 @@ use pcap::{Capture, Device, Inactive};
 use tokio::sync::{broadcast::Receiver, mpsc::Sender};
 
 use crate::{
-	config::ListenConfig,
-	runtime::{BlockingRunnable, BlockingRunnableBuilder},
+	config::ListenConfig, runtime::{BlockingRunnable, BlockingRunnableBuilder}, state::{appstate::AppState, interface::Interface}
 };
 
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
@@ -24,26 +23,37 @@ pub enum Matcher {
 	Unexpected,
 }
 
-pub struct MovingPacket {
-	pub header: pcap::PacketHeader,
-	pub data: Vec<u8>,
+pub enum ReceivedPacketData {
+	MovingPacket {
+		header: pcap::PacketHeader,
+		data: Vec<u8>,
+	},
+
+	Counts {
+		total: u32,
+		os_dropped: u32,
+		if_dropped: u32,
+	}
 }
 
 pub struct Builder {
-	// cfg: HttpConfig
 	iface_name: Option<String>,
-	senders: HashMap<Matcher, Sender<MovingPacket>>,
+	senders: HashMap<Matcher, Sender<ReceivedPacketData>>,
+	state: Option<AppState>,
 }
 
 pub struct Devices {
+	// iface: Arc<Mutex<Interface>>,
+	iface: Arc<Interface>,
 	cap: Capture<Inactive>,
-	senders: HashMap<Matcher, Sender<MovingPacket>>,
+	senders: HashMap<Matcher, Sender<ReceivedPacketData>>,
 }
 
-pub fn new(/*cfg: HttpConfig*/) -> Builder {
+pub fn new() -> Builder {
 	Builder { 
 		iface_name: None,
 		senders: HashMap::new(),
+		state: None,
 	}
 }
 
@@ -53,8 +63,12 @@ impl Builder {
 		self
 	}
 
-	// pub fn set_typed_sender(mut self, m: Matcher, sender: Sender<pcap::Packet<'static>>) -> Self {
-	pub fn set_typed_sender(mut self, m: Matcher, sender: Sender<MovingPacket>) -> Self {
+	pub fn set_state(mut self, state: AppState) -> Self {
+		self.state = Some(state);
+		self
+	}
+
+	pub fn set_typed_sender(mut self, m: Matcher, sender: Sender<ReceivedPacketData>) -> Self {
 		self.senders.insert(m, sender);
 		self
 	}
@@ -63,22 +77,37 @@ impl Builder {
 impl BlockingRunnableBuilder for Builder {
 	fn build(
 		self: Box<Self>,
-	) -> Result<Box<dyn crate::runtime::BlockingRunnable + Send>, Box<dyn std::error::Error>> {
-		let device = match self.iface_name {
-			// cfg.interfaces.unwrap_or(vec![]).first() {
-			Some(iface) => Device::list()?
-				.into_iter()
-				.find(|d| d.name == *iface)
-				.with_context(|| format!("interface '{}' was not found", iface))?,
+	) -> Result<Box<dyn BlockingRunnable + Send>, Box<dyn std::error::Error>> {
+		let (iface_name, device) = match self.iface_name {
+			Some(iface_name) => {
+				let dev = Device::list()?
+					.into_iter()
+					.find(|d| d.name == *iface_name)
+					.with_context(|| format!("interface '{}' was not found", iface_name))?;
+				(iface_name, dev)
+			},
 			None => {
 				return Err("no interfaces".into());
 			},
 		};
 
+		let iface = Arc::new(Interface::new(iface_name));
+
 		// device
 		let cap = Capture::from_device(device)?.promisc(true).timeout(100);
 
+		let state = match self.state {
+			Some(x) => x,
+			None => {
+				return Err("".into());
+			}
+		};
+
+		// Add the interface to the appstate
+		state.interfaces.lock().unwrap().insert(iface.clone());
+
 		Ok(Box::new(Devices {
+			iface,
 			cap,
 			senders: self.senders,
 		}))
@@ -89,10 +118,7 @@ impl BlockingRunnable for Devices {
 	fn run(self: Box<Self>, cancel_rx: Receiver<()>) -> Result<(), Box<dyn std::error::Error>> {
 		let mut cap = self.cap.open()?;
 
-		// sequences
-		// let mut sequences: HashMap<TcpSession, State> = HashMap::new();
-
-		let (mut packet_count, mut dropped_count, mut if_dropped_count) = (0, 0, 0);
+		let (mut packet_count, mut os_dropped_count, mut if_dropped_count) = (0, 0, 0);
 
 		loop {
 			// Check to see if we need to exit
@@ -147,7 +173,7 @@ impl BlockingRunnable for Devices {
 
 					let header_clone = *packet.header;
 					let data_clone = packet.data.to_vec();
-					let p0 = MovingPacket {
+					let p0 = ReceivedPacketData::MovingPacket {
 						header: header_clone,
 						data: data_clone,
 					};
@@ -160,19 +186,25 @@ impl BlockingRunnable for Devices {
 				Err(pcap::Error::TimeoutExpired) => {
 					// Just try again on timeout - this makes the program more responsive
 					let stats = cap.stats().unwrap();
-					if packet_count != stats.received
-						|| dropped_count != stats.dropped
-						|| if_dropped_count != stats.if_dropped
+
+					if packet_count == stats.received
+						&& os_dropped_count == stats.dropped
+						&& if_dropped_count == stats.if_dropped
 					{
-						println!(
-							"Received: {}, dropped: {}, if_dropped: {}",
-							stats.received, stats.dropped, stats.if_dropped
-						);
+						continue
 					}
 
 					packet_count = stats.received;
-					dropped_count = stats.dropped;
+					os_dropped_count = stats.dropped;
 					if_dropped_count = stats.if_dropped;
+
+					info!(
+						"Received: {}, dropped: {}, if_dropped: {}",
+						stats.received, stats.dropped, stats.if_dropped
+					);
+
+					self.iface.update_counts(packet_count, os_dropped_count, if_dropped_count);
+
 					continue;
 				},
 				Err(e) => {

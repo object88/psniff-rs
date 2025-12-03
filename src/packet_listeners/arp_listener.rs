@@ -3,13 +3,13 @@ use etherparse::{NetSlice, SlicedPacket};
 use tokio::sync::{broadcast, mpsc::Receiver};
 
 use crate::{
-  devices::MovingPacket,
+  devices::{ReceivedPacketData},
   packet_listeners::listener::{self, BuildError, PacketHandler},
   runtime::{Runnable, RunnableBuilder}
 };
 
 pub struct ArpListenerBuilder {
-  receiver: Option<Receiver<MovingPacket>>
+  receiver: Option<Receiver<ReceivedPacketData>>
 }
 
 pub fn new() -> ArpListenerBuilder {
@@ -19,14 +19,14 @@ pub fn new() -> ArpListenerBuilder {
 }
 
 impl ArpListenerBuilder {
-  pub fn set_receiver(mut self, receiver: Receiver<MovingPacket>) -> Self {
+  pub fn set_receiver(mut self, receiver: Receiver<ReceivedPacketData>) -> Self {
     self.receiver = Some(receiver);
     self
   }
 }
 
 pub struct ArpListener {
-  receiver: Receiver<MovingPacket>,
+  receiver: Receiver<ReceivedPacketData>,
 
   packet_count: u64,
 }
@@ -57,7 +57,7 @@ impl Runnable for ArpListener {
 
 #[async_trait]
 impl PacketHandler for ArpListener {
-  async fn recv(&mut self) -> Option<MovingPacket> {
+  async fn recv(&mut self) -> Option<ReceivedPacketData> {
     self.receiver.recv().await
   }
 
@@ -71,5 +71,9 @@ impl PacketHandler for ArpListener {
     // if let Some(NetSlice::Ipv4(ipv4_header)) = &packet.net && let Some(TransportSlice::Tcp(tcp_header)) = &packet.transport {
     //   process_ipv4_tcp(&mut self.sequences, ipv4_header, tcp_header)
     // }
+  }
+
+  async fn handle_packet_count(&mut self, _count: (u64, u64, u64)) {
+
   }
 }

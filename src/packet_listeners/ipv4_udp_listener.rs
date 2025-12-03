@@ -3,10 +3,10 @@ use etherparse::{Ipv4Slice, NetSlice, SlicedPacket, TransportSlice, UdpSlice};
 use log::info;
 use tokio::sync::{broadcast, mpsc::Receiver};
 
-use crate::{devices::{self, MovingPacket}, packet_listeners::listener::{self, BuildError, PacketHandler}, runtime::{Runnable, RunnableBuilder}};
+use crate::{devices::{self, ReceivedPacketData}, packet_listeners::listener::{self, BuildError, PacketHandler}, runtime::{Runnable, RunnableBuilder}};
 
 pub struct Ipv4UdpListenerBuilder {
-  receiver: Option<Receiver<devices::MovingPacket>>
+  receiver: Option<Receiver<devices::ReceivedPacketData>>
 }
 
 pub fn new() -> Ipv4UdpListenerBuilder {
@@ -16,14 +16,14 @@ pub fn new() -> Ipv4UdpListenerBuilder {
 }
 
 impl Ipv4UdpListenerBuilder {
-  pub fn set_receiver(mut self, receiver: Receiver<devices::MovingPacket>) -> Self {
+  pub fn set_receiver(mut self, receiver: Receiver<devices::ReceivedPacketData>) -> Self {
     self.receiver = Some(receiver);
     self
   }
 }
 
 pub struct Ipv4UdpListener {
-  receiver: Receiver<devices::MovingPacket>,
+  receiver: Receiver<devices::ReceivedPacketData>,
 }
 
 #[async_trait]
@@ -51,7 +51,7 @@ impl Runnable for Ipv4UdpListener {
 
 #[async_trait]
 impl PacketHandler for Ipv4UdpListener {
-  async fn recv(&mut self) -> Option<MovingPacket> {
+  async fn recv(&mut self) -> Option<ReceivedPacketData> {
     self.receiver.recv().await
   }
 
@@ -62,6 +62,10 @@ impl PacketHandler for Ipv4UdpListener {
     
 		info!("Processed message {:?}", packet);
 	}
+
+  async fn handle_packet_count(&mut self, _count: (u64, u64, u64)) {
+
+  }
 }
 
 fn process_ipv4_udp(ip_slice: &Ipv4Slice, udp_header: &UdpSlice) {

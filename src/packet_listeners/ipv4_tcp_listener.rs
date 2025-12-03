@@ -4,10 +4,10 @@ use async_trait::async_trait;
 use etherparse::{Ipv4Slice, NetSlice, SlicedPacket, TcpSlice, TransportSlice};
 use tokio::sync::{broadcast, mpsc::Receiver};
 
-use crate::{devices::{self, MovingPacket}, packet_listeners::listener::{self, BuildError, PacketHandler}, runtime::{Runnable, RunnableBuilder}};
+use crate::{devices::{self, ReceivedPacketData}, packet_listeners::listener::{self, BuildError, PacketHandler}, runtime::{Runnable, RunnableBuilder}};
 
 pub struct Ipv4TcpListenerBuilder {
-  receiver: Option<Receiver<devices::MovingPacket>>
+  receiver: Option<Receiver<devices::ReceivedPacketData>>
 }
 
 pub fn new() -> Ipv4TcpListenerBuilder {
@@ -17,7 +17,7 @@ pub fn new() -> Ipv4TcpListenerBuilder {
 }
 
 impl Ipv4TcpListenerBuilder {
-  pub fn set_receiver(mut self, receiver: Receiver<devices::MovingPacket>) -> Self {
+  pub fn set_receiver(mut self, receiver: Receiver<devices::ReceivedPacketData>) -> Self {
     self.receiver = Some(receiver);
     self
   }
@@ -37,7 +37,7 @@ struct State {
 }
 
 pub struct Ipv4TcpListener {
-  receiver: Receiver<devices::MovingPacket>,
+  receiver: Receiver<devices::ReceivedPacketData>,
 
   packet_count: u64,
 
@@ -72,7 +72,7 @@ impl Runnable for Ipv4TcpListener {
 
 #[async_trait]
 impl PacketHandler for Ipv4TcpListener {
-  async fn recv(&mut self) -> Option<MovingPacket> {
+  async fn recv(&mut self) -> Option<ReceivedPacketData> {
     self.receiver.recv().await
   }
 
@@ -82,6 +82,10 @@ impl PacketHandler for Ipv4TcpListener {
     if let Some(NetSlice::Ipv4(ipv4_header)) = &packet.net && let Some(TransportSlice::Tcp(tcp_header)) = &packet.transport {
       process_ipv4_tcp(&mut self.sequences, ipv4_header, tcp_header)
     }
+  }
+
+  async fn handle_packet_count(&mut self, _count: (u64, u64, u64)) {
+
   }
 }
 

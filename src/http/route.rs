@@ -1,6 +1,6 @@
 use axum::{routing::MethodRouter, Router};
 
-pub trait State: Clone + Default + Send + Sync {}
+use crate::state::appstate::State;
 
 pub struct Route<S> where S: State + 'static {
   router: Router<S>,

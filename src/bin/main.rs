@@ -2,13 +2,13 @@ use anyhow::Result;
 use axum::{extract::State, routing::get};
 use clap::Parser;
 use psniff_rs::{
-	appstate::{self, AppState},
 	cli::{Cli, Commands, logging},
 	config::RunConfig,
-	devices::{self, Matcher, MovingPacket, list, listen},
+	devices::{self, Matcher, ReceivedPacketData, list, listen},
 	http::{route, routes::status::process, service as http_s},
 	packet_listeners::{arp_listener, ipv4_tcp_listener, ipv4_udp_listener},
 	runtime::{self, BlockingRunnableBuilder, RunnableBuilder},
+	state::appstate::{self, AppState},
 	version,
 };
 use tokio::sync::mpsc::channel;
@@ -30,11 +30,11 @@ fn main() -> Result<()> {
 			let rc: RunConfig = args.into();
 
 			// Construct the state
-			let app_state = appstate::new::<'static>();
+			let app_state = appstate::newnew();
 
-			let (arp_sender, arp_receiver) = channel::<MovingPacket>(1024);
-			let (ipv4_tcp_sender, ipv4_tcp_receiver) = channel::<MovingPacket>(1024);
-			let (ipv4_udp_sender, ipv4_udp_receiver) = channel::<MovingPacket>(1024);
+			let (arp_sender, arp_receiver) = channel::<ReceivedPacketData>(1024);
+			let (ipv4_tcp_sender, ipv4_tcp_receiver) = channel::<ReceivedPacketData>(1024);
+			let (ipv4_udp_sender, ipv4_udp_receiver) = channel::<ReceivedPacketData>(1024);
 
 			// Create guard at the start of your program (only when feature is enabled)
 			#[cfg(feature = "channels-console")]
@@ -67,16 +67,18 @@ fn main() -> Result<()> {
 				}
 			}
 				.add("/status/ready", get(|| async { "wat" }))
-				.add("/status", get(|State(_state): State<AppState<'static, ()>>| async { "yup" }))
+				.add("/status", get(|State(_state): State<AppState>| async { "yup" }))
 				.add("/foo", get(process));
 
-			let http_builder = http_s::new::<AppState<'static,()>>(rc.api_http)
+			// let http_builder = http_s::new::<AppState<'static,()>>(rc.api_http)
+			let http_builder = http_s::new::<AppState>(rc.api_http)
 				.set_routes(route)
-				.set_state(app_state);
+				.set_state(app_state.clone());
 
 			// Construct the network device listener
 			let d = devices::new()
 				.set_interface("en0".to_string())
+				.set_state(app_state)
 				.set_typed_sender(Matcher::Arp, arp_sender)
 				.set_typed_sender(Matcher::IPv4_TCP, ipv4_tcp_sender)
 				.set_typed_sender(Matcher::IPv4_UDP, ipv4_udp_sender);

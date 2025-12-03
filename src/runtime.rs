@@ -36,9 +36,9 @@ pub trait RunnableBuilder: Send {
 	async fn build(self: Box<Self>) -> Result<Box<dyn Runnable>, Box<dyn std::error::Error>>;
 }
 
-pub fn blocking_build(
+pub fn blocking_build<'l>(
 	buildables: impl IntoIterator<Item = Box<dyn BlockingRunnableBuilder>>,
-) -> Result<Vec<Box<dyn BlockingRunnable + Send>>, Box<dyn std::error::Error>> {
+) -> Result<Vec<Box<dyn BlockingRunnable + Send + 'l>>, Box<dyn std::error::Error>> {
 	let results = buildables.into_iter().map(|f| f.build());
 
 	let mut v = vec![];
@@ -75,7 +75,7 @@ pub async fn build(
 	Ok(v)
 }
 
-pub fn run(
+pub fn run<'l>(
 	blocking_runnable_builders: impl IntoIterator<Item = Box<dyn BlockingRunnableBuilder>>,
 	runnable_builders: impl IntoIterator<Item = Box<dyn RunnableBuilder>>,
 ) -> Result<()> {
