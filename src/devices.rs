@@ -7,7 +7,9 @@ use pcap::{Capture, Device, Inactive};
 use tokio::sync::{broadcast::Receiver, mpsc::Sender};
 
 use crate::{
-	config::ListenConfig, runtime::{BlockingRunnable, BlockingRunnableBuilder}, state::{appstate::AppState, interface::Interface}
+	config::ListenConfig,
+	runtime::{BlockingRunnable, BlockingRunnableBuilder},
+	state::{appstate::AppState, interface::Interface},
 };
 
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
@@ -33,7 +35,7 @@ pub enum ReceivedPacketData {
 		total: u32,
 		os_dropped: u32,
 		if_dropped: u32,
-	}
+	},
 }
 
 pub struct Builder {
@@ -50,7 +52,7 @@ pub struct Devices {
 }
 
 pub fn new() -> Builder {
-	Builder { 
+	Builder {
 		iface_name: None,
 		senders: HashMap::new(),
 		state: None,
@@ -100,7 +102,7 @@ impl BlockingRunnableBuilder for Builder {
 			Some(x) => x,
 			None => {
 				return Err("".into());
-			}
+			},
 		};
 
 		// Add the interface to the appstate
@@ -129,46 +131,44 @@ impl BlockingRunnable for Devices {
 			match cap.next_packet() {
 				Ok(packet) => {
 					let m = match SlicedPacket::from_ethernet(packet.data) {
-						Ok(sliced_packet) => {
-							match &sliced_packet.net {
-								Some(NetSlice::Arp(_)) => Matcher::Arp,
-								Some(NetSlice::Ipv4(ipv4_header)) => match &sliced_packet.transport {
-									Some(TransportSlice::Icmpv4(_)) => Matcher::IPv4_ICMPv4,
-									Some(TransportSlice::Icmpv6(_)) => Matcher::Unexpected,
-									Some(TransportSlice::Tcp(_)) => Matcher::IPv4_TCP,
-									Some(TransportSlice::Udp(_)) => Matcher::IPv4_UDP,
-									None => {
-										let ip_number = ipv4_header.payload_ip_number();
-										info!(
-											"IPv4-no-transport {} {}",
-											ip_number.keyword_str().unwrap_or("---"),
-											ip_number.protocol_str().unwrap_or("unknown")
-										);
-										continue
-									}
+						Ok(sliced_packet) => match &sliced_packet.net {
+							Some(NetSlice::Arp(_)) => Matcher::Arp,
+							Some(NetSlice::Ipv4(ipv4_header)) => match &sliced_packet.transport {
+								Some(TransportSlice::Icmpv4(_)) => Matcher::IPv4_ICMPv4,
+								Some(TransportSlice::Icmpv6(_)) => Matcher::Unexpected,
+								Some(TransportSlice::Tcp(_)) => Matcher::IPv4_TCP,
+								Some(TransportSlice::Udp(_)) => Matcher::IPv4_UDP,
+								None => {
+									let ip_number = ipv4_header.payload_ip_number();
+									info!(
+										"IPv4-no-transport {} {}",
+										ip_number.keyword_str().unwrap_or("---"),
+										ip_number.protocol_str().unwrap_or("unknown")
+									);
+									continue;
 								},
-								Some(NetSlice::Ipv6(ipv6_header)) => match &sliced_packet.transport {
-									Some(TransportSlice::Icmpv4(_)) => Matcher::Unexpected,
-									Some(TransportSlice::Icmpv6(_)) => Matcher::IPv6_ICMPv6,
-									Some(TransportSlice::Tcp(_)) => Matcher::IPv6_TCP,
-									Some(TransportSlice::Udp(_)) => Matcher::IPv6_UDP,
-									None => {
-										let ip_number = ipv6_header.payload().ip_number;
-										info!(
-											"IPv6-no-transport {} {}",
-											ip_number.keyword_str().unwrap_or("---"),
-											ip_number.protocol_str().unwrap_or("unknown")
-										);
-										continue
-									}
+							},
+							Some(NetSlice::Ipv6(ipv6_header)) => match &sliced_packet.transport {
+								Some(TransportSlice::Icmpv4(_)) => Matcher::Unexpected,
+								Some(TransportSlice::Icmpv6(_)) => Matcher::IPv6_ICMPv6,
+								Some(TransportSlice::Tcp(_)) => Matcher::IPv6_TCP,
+								Some(TransportSlice::Udp(_)) => Matcher::IPv6_UDP,
+								None => {
+									let ip_number = ipv6_header.payload().ip_number;
+									info!(
+										"IPv6-no-transport {} {}",
+										ip_number.keyword_str().unwrap_or("---"),
+										ip_number.protocol_str().unwrap_or("unknown")
+									);
+									continue;
 								},
-								None => Matcher::Missing,
-							}
+							},
+							None => Matcher::Missing,
 						},
 						Err(err) => {
 							error!("Error parsing packet: {:?}", err);
 							continue;
-						}
+						},
 					};
 
 					let header_clone = *packet.header;
@@ -191,7 +191,7 @@ impl BlockingRunnable for Devices {
 						&& os_dropped_count == stats.dropped
 						&& if_dropped_count == stats.if_dropped
 					{
-						continue
+						continue;
 					}
 
 					packet_count = stats.received;
@@ -203,7 +203,9 @@ impl BlockingRunnable for Devices {
 						stats.received, stats.dropped, stats.if_dropped
 					);
 
-					self.iface.update_counts(packet_count, os_dropped_count, if_dropped_count);
+					self
+						.iface
+						.update_counts(packet_count, os_dropped_count, if_dropped_count);
 
 					continue;
 				},

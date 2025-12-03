@@ -24,11 +24,12 @@ pub trait BlockingRunnable: Send {
 
 #[async_trait]
 pub trait Runnable: Send {
-	async fn run(&mut self, cancel_rx: Receiver<()>) /* -> Self*/ ;
+	async fn run(&mut self, cancel_rx: Receiver<()>) /* -> Self*/;
 }
 
 pub trait BlockingRunnableBuilder: Send {
-	fn build(self: Box<Self>) -> Result<Box<dyn BlockingRunnable + Send>, Box<dyn std::error::Error>>;
+	fn build(self: Box<Self>)
+	-> Result<Box<dyn BlockingRunnable + Send>, Box<dyn std::error::Error>>;
 }
 
 #[async_trait]

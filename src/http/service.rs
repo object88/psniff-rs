@@ -1,9 +1,12 @@
 use std::{
-	mem, net::{IpAddr, SocketAddr}, str::FromStr, time::Duration
+	mem,
+	net::{IpAddr, SocketAddr},
+	str::FromStr,
+	time::Duration,
 };
 
 use async_trait::async_trait;
-use axum::{error_handling::HandleErrorLayer, http::StatusCode, BoxError, Router};
+use axum::{BoxError, Router, error_handling::HandleErrorLayer, http::StatusCode};
 use log::info;
 use thiserror::Error;
 use tokio::{
@@ -12,7 +15,12 @@ use tokio::{
 };
 use tower::ServiceBuilder;
 
-use crate::{config::Http as HttpConfig, http::{middleware, route::Route}, runtime::{Runnable, RunnableBuilder}, state::appstate::State};
+use crate::{
+	config::Http as HttpConfig,
+	http::{middleware, route::Route},
+	runtime::{Runnable, RunnableBuilder},
+	state::appstate::State,
+};
 
 #[derive(Debug, Error)]
 pub enum Error {
@@ -26,27 +34,39 @@ pub enum Error {
 	NoState,
 }
 
-pub struct Builder<S> where S: State + 'static {
+pub struct Builder<S>
+where
+	S: State + 'static,
+{
 	cfg: HttpConfig,
 	routes: Option<Route<S>>,
 	state: Option<S>,
 }
 
-pub struct Http<S> where S: State {
+pub struct Http<S>
+where
+	S: State,
+{
 	app: Router<S>,
 	listener: Option<TcpListener>,
 	s: S,
 }
 
-pub fn new<S>(cfg: HttpConfig) -> Builder<S> where S: State {
-	Builder{
-    cfg,
+pub fn new<S>(cfg: HttpConfig) -> Builder<S>
+where
+	S: State,
+{
+	Builder {
+		cfg,
 		routes: None,
 		state: None,
-  }
+	}
 }
 
-impl<S> Builder<S> where S: State {
+impl<S> Builder<S>
+where
+	S: State,
+{
 	pub fn set_routes(mut self, routes: Route<S>) -> Self {
 		self.routes = Some(routes);
 		self
@@ -59,7 +79,10 @@ impl<S> Builder<S> where S: State {
 }
 
 #[async_trait]
-impl<S> RunnableBuilder for Builder<S> where S: State {
+impl<S> RunnableBuilder for Builder<S>
+where
+	S: State,
+{
 	async fn build(
 		self: Box<Self>,
 	) -> Result<Box<dyn Runnable + 'static>, Box<dyn std::error::Error>> {
@@ -71,22 +94,19 @@ impl<S> RunnableBuilder for Builder<S> where S: State {
 
 		let r = match self.routes {
 			Some(r) => r,
-			None => {
-				return Err(Error::NoRouting.into())
-			}
+			None => return Err(Error::NoRouting.into()),
 		};
 
 		let s = match self.state {
 			Some(s) => s,
-			None => {
-				return Err(Error::NoState.into())
-			}
+			None => return Err(Error::NoState.into()),
 		};
 
-		let r0: Router<S> = <Route<S> as Into<axum::Router<S>>>::into(r)
-			.layer(ServiceBuilder::new()
+		let r0: Router<S> = <Route<S> as Into<axum::Router<S>>>::into(r).layer(
+			ServiceBuilder::new()
 				.layer(HandleErrorLayer::new(handle_error))
-				.layer(middleware::TimeoutLayer::new(Duration::from_millis(250))));
+				.layer(middleware::TimeoutLayer::new(Duration::from_millis(250))),
+		);
 
 		let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
 		return Ok(Box::new(Http {
@@ -98,7 +118,10 @@ impl<S> RunnableBuilder for Builder<S> where S: State {
 }
 
 #[async_trait]
-impl<S> Runnable for Http<S> where S: State + 'static {
+impl<S> Runnable for Http<S>
+where
+	S: State + 'static,
+{
 	async fn run(&mut self, mut cancel_rx: Receiver<()>) {
 		info!("http started");
 
@@ -122,8 +145,5 @@ impl<S> Runnable for Http<S> where S: State + 'static {
 }
 
 async fn handle_error(_err: BoxError) -> (StatusCode, String) {
-	(
-		StatusCode::BAD_REQUEST,
-		"error".to_string(),
-	)
+	(StatusCode::BAD_REQUEST, "error".to_string())
 }

@@ -3,7 +3,10 @@ pub mod logging;
 
 use clap::{Parser, Subcommand};
 
-use crate::{cli::args::ArgLevelFilter, config::{Http, ListenConfig, RunConfig}};
+use crate::{
+	cli::args::ArgLevelFilter,
+	config::{Http, ListenConfig, RunConfig},
+};
 
 #[derive(Parser)]
 #[command(arg_required_else_help = true)]
@@ -61,7 +64,7 @@ impl From<&ArgsRun> for RunConfig {
 			api_http: Http {
 				host: value.host.clone(),
 				port: value.port,
-			}
+			},
 		}
 	}
 }
