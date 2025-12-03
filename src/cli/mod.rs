@@ -3,7 +3,10 @@ pub mod logging;
 
 use clap::{Parser, Subcommand};
 
-use crate::{cli::args::ArgLevelFilter, config::ListenConfig};
+use crate::{
+	cli::args::ArgLevelFilter,
+	config::{Http, ListenConfig, RunConfig},
+};
 
 #[derive(Parser)]
 #[command(arg_required_else_help = true)]
@@ -24,7 +27,7 @@ pub enum Commands {
 	Listen(ArgsListen),
 
 	/// Run
-	Run {},
+	Run(ArgsRun),
 
 	Version,
 }
@@ -42,6 +45,26 @@ impl From<&ArgsListen> for ListenConfig {
 	fn from(val: &ArgsListen) -> Self {
 		ListenConfig {
 			interfaces: val.interfaces.clone(),
+		}
+	}
+}
+
+#[derive(Parser)]
+pub struct ArgsRun {
+	#[arg(default_value = "127.0.0.1")]
+	pub host: String,
+
+	#[arg(default_value_t = 3000)]
+	pub port: u16,
+}
+
+impl From<&ArgsRun> for RunConfig {
+	fn from(value: &ArgsRun) -> Self {
+		RunConfig {
+			api_http: Http {
+				host: value.host.clone(),
+				port: value.port,
+			},
 		}
 	}
 }
