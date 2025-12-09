@@ -38,3 +38,6 @@ tower-layer = { version = "0.3.3" }
 
 [build-dependencies]
 built = { version = "0.8.0" }
+
+[dev-dependencies]
+tun = { version = "0.8.4" }

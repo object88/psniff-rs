@@ -1,6 +1,5 @@
 use async_trait::async_trait;
 use etherparse::{Ipv4Slice, NetSlice, SlicedPacket, TransportSlice, UdpSlice};
-use log::info;
 use tokio::sync::{broadcast, mpsc::Receiver};
 
 use crate::{
@@ -59,8 +58,6 @@ impl PacketHandler for Ipv4UdpListener {
 		{
 			process_ipv4_udp(ipv4_header, udp_header)
 		}
-
-		info!("Processed message {:?}", packet);
 	}
 
 	async fn handle_packet_count(&mut self, _count: (u64, u64, u64)) {}
