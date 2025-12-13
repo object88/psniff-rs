@@ -1,0 +1,75 @@
+name: test
+permissions:
+  contents: read
+
+# This is a temporary workaround for the issues with testing.
+# We need to create a "tun" network interface for testing, but
+# this must be done as root.  In order to get the cargo test
+# to pass, we need to jump through some hoops for sudo to work.
+#
+# In the future, this should be run only as needed, before merging,
+# and this level of integration or end-to-end tests could be isolated
+# so that "typical" tests can be run separately and more frequently.
+
+on:
+  pull_request:
+    branches: ["main"]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Disable mandb updating
+        run: |
+          sudo rm -f /var/lib/man-db/auto-update
+
+      - name: Install pcap library
+        run: |
+          sudo apt-get update
+          sudo apt-get -y install libpcap-dev
+
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Find rust tools
+        id: tools
+        run: |
+          echo "cargo=$(which cargo)" >> $GITHUB_OUTPUT
+          echo "rustc=$(which rustc)" >> $GITHUB_OUTPUT
+          echo "rustup=$(which rustup)" >> $GITHUB_OUTPUT
+
+      - name: Add cargo to passwordless sudo
+        run: |
+          cat << HEREDOC | sudo tee /etc/sudoers.d/${USER}
+          Defaults env_keep = "PATH"
+          ${USER} ALL=(ALL) NOPASSWD:SETENV: ALL,${{ steps.tools.outputs.cargo }},${{ steps.tools.outputs.rustc }},${{ steps.tools.outputs.rustup }}"
+          HEREDOC
+
+      - name: Load tun module (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          # Set up for testing using "tun"
+          sudo modprobe tun
+
+      - name: Build
+        run: |
+          sudo --preserve-env ${{ steps.tools.outputs.cargo }} build --verbose
+
+      - name: Run tests
+        run: |
+          # Sudo is required in order to instantiate "tun"
+          sudo --preserve-env ${{ steps.tools.outputs.cargo }} test --verbose
