@@ -78,14 +78,14 @@ fn main() -> Result<()> {
 			.add("/foo", get(process));
 
 			// let http_builder = http_s::new::<AppState<'static,()>>(rc.api_http)
-			let http_builder = http_s::new::<AppState>(rc.api_http)
+			let http_builder = http_s::Builder::<AppState>::new(rc.api_http)
 				.set_routes(route)
-				.set_state(app_state.clone());
+				.with_state(app_state.clone());
 
 			// Construct the network device listener
-			let d = devices::new()
-				.set_interface("en0".to_string())
-				.set_state(app_state)
+			let d = devices::Builder::new()
+				.with_interface("en0".to_string())
+				.with_state(app_state)
 				.set_typed_sender(Matcher::Arp, arp_sender)
 				.set_typed_sender(Matcher::IPv4_TCP, ipv4_tcp_sender)
 				.set_typed_sender(Matcher::IPv4_UDP, ipv4_udp_sender);

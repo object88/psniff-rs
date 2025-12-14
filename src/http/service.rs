@@ -22,6 +22,14 @@ use crate::{
 	state::appstate::State,
 };
 
+// struct Unset {}
+
+// trait StateMarker {}
+
+// impl StateMarker for Unset {}
+
+// impl StateMarker for State {}
+
 #[derive(Debug, Error)]
 pub enum Error {
 	#[error("bad address")]
@@ -34,12 +42,15 @@ pub enum Error {
 	NoState,
 }
 
+// pub struct Builder<S, SM>
 pub struct Builder<S>
 where
 	S: State + 'static,
+	// SM: StateMarker,
 {
 	cfg: HttpConfig,
 	routes: Option<Route<S>>,
+	// state: SM,
 	state: Option<S>,
 }
 
@@ -52,33 +63,42 @@ where
 	s: S,
 }
 
-pub fn new<S>(cfg: HttpConfig) -> Builder<S>
-where
-	S: State,
-{
-	Builder {
-		cfg,
-		routes: None,
-		state: None,
-	}
-}
-
+// impl<S> Builder<S, Unset>
 impl<S> Builder<S>
 where
 	S: State,
+{
+	// pub fn new<S>(cfg: HttpConfig) -> Builder<S, Unset> {
+	pub fn new(cfg: HttpConfig) -> Builder<S> {
+		Builder {
+			cfg,
+			routes: None,
+			state: None,
+			// state: Unset {},
+		}
+	}
+}
+
+// impl<S, SM> Builder<S, SM>
+impl<S> Builder<S>
+where
+	S: State,
+	// SM: StateMarker,
 {
 	pub fn set_routes(mut self, routes: Route<S>) -> Self {
 		self.routes = Some(routes);
 		self
 	}
 
-	pub fn set_state(mut self, state: S) -> Self {
+	// pub fn with_state(mut self, state: S) -> Builder<S, S> {
+	pub fn with_state(mut self, state: S) -> Builder<S> {
 		self.state = Some(state);
 		self
 	}
 }
 
 #[async_trait]
+// impl<S> RunnableBuilder for Builder<S, S>
 impl<S> RunnableBuilder for Builder<S>
 where
 	S: State,
