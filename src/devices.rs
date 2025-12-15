@@ -12,6 +12,20 @@ use crate::{
 	state::{appstate::AppState, interface::Interface},
 };
 
+pub type InterfaceName = String;
+
+// TypeState Builder pattern
+// https://www.youtube.com/watch?v=PDcfYf-g1jU&t=1s
+pub struct Unset {}
+
+pub trait InterfaceNameMarker {}
+impl InterfaceNameMarker for Unset {}
+impl InterfaceNameMarker for InterfaceName {}
+
+pub trait StateMarker {}
+impl StateMarker for Unset {}
+impl StateMarker for AppState {}
+
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub enum Matcher {
 	Arp,
@@ -38,10 +52,14 @@ pub enum ReceivedPacketData {
 	},
 }
 
-pub struct Builder {
-	iface_name: Option<String>,
+pub struct Builder<INM, SM>
+where
+	INM: InterfaceNameMarker,
+	SM: StateMarker,
+{
+	iface_name: INM,
 	senders: HashMap<Matcher, Sender<ReceivedPacketData>>,
-	state: Option<AppState>,
+	state: SM,
 }
 
 pub struct Devices {
@@ -51,23 +69,35 @@ pub struct Devices {
 	senders: HashMap<Matcher, Sender<ReceivedPacketData>>,
 }
 
-pub fn new() -> Builder {
-	Builder {
-		iface_name: None,
-		senders: HashMap::new(),
-		state: None,
+impl Builder<Unset, Unset> {
+	pub fn new() -> Builder<Unset, Unset> {
+		Builder {
+			iface_name: Unset {},
+			senders: HashMap::new(),
+			state: Unset {},
+		}
 	}
 }
 
-impl Builder {
-	pub fn set_interface(mut self, iface_name: String) -> Self {
-		self.iface_name = Some(iface_name);
-		self
+impl<INM, SM> Builder<INM, SM>
+where
+	INM: InterfaceNameMarker,
+	SM: StateMarker,
+{
+	pub fn with_interface(self, iface_name: InterfaceName) -> Builder<InterfaceName, SM> {
+		Builder {
+			iface_name,
+			senders: self.senders,
+			state: self.state,
+		}
 	}
 
-	pub fn set_state(mut self, state: AppState) -> Self {
-		self.state = Some(state);
-		self
+	pub fn with_state(self, state: AppState) -> Builder<INM, AppState> {
+		Builder {
+			iface_name: self.iface_name,
+			senders: self.senders,
+			state,
+		}
 	}
 
 	pub fn set_typed_sender(mut self, m: Matcher, sender: Sender<ReceivedPacketData>) -> Self {
@@ -76,37 +106,22 @@ impl Builder {
 	}
 }
 
-impl BlockingRunnableBuilder for Builder {
+impl BlockingRunnableBuilder for Builder<InterfaceName, AppState> {
 	fn build(
 		self: Box<Self>,
 	) -> Result<Box<dyn BlockingRunnable + Send>, Box<dyn std::error::Error>> {
-		let (iface_name, device) = match self.iface_name {
-			Some(iface_name) => {
-				let dev = Device::list()?
-					.into_iter()
-					.find(|d| d.name == *iface_name)
-					.with_context(|| format!("interface '{}' was not found", iface_name))?;
-				(iface_name, dev)
-			},
-			None => {
-				return Err("no interfaces".into());
-			},
-		};
+		let device = Device::list()?
+			.into_iter()
+			.find(|d| d.name == self.iface_name)
+			.with_context(|| format!("interface '{}' was not found", self.iface_name))?;
 
-		let iface = Arc::new(Interface::new(iface_name));
+		let iface = Arc::new(Interface::new(self.iface_name));
 
 		// device
 		let cap = Capture::from_device(device)?.promisc(true).timeout(100);
 
-		let state = match self.state {
-			Some(x) => x,
-			None => {
-				return Err("".into());
-			},
-		};
-
 		// Add the interface to the appstate
-		state.interfaces.lock().unwrap().insert(iface.clone());
+		self.state.interfaces.lock().unwrap().insert(iface.clone());
 
 		Ok(Box::new(Devices {
 			iface,
