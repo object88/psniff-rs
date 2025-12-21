@@ -1,0 +1,9 @@
+[profile.default]
+default-filter = 'not binary_id(psniff-rs::devices_test)'
+
+[profile.ci]
+default-filter = 'all()'
+fail-fast = false
+
+[profile.ci.junit]
+path = "junit.xml"
