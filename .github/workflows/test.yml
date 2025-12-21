@@ -2,6 +2,19 @@ name: test
 permissions:
   contents: read
 
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+    types:
+      - labeled
+      - opened
+      - reopened
+      - synchronize
+
 # This is a temporary workaround for the issues with testing.
 # We need to create a "tun" network interface for testing, but
 # this must be done as root.  In order to get the cargo test
@@ -10,10 +23,6 @@ permissions:
 # In the future, this should be run only as needed, before merging,
 # and this level of integration or end-to-end tests could be isolated
 # so that "typical" tests can be run separately and more frequently.
-
-on:
-  pull_request:
-    branches: ["main"]
 
 env:
   CARGO_TERM_COLOR: always
@@ -25,6 +34,9 @@ jobs:
       - uses: actions/checkout@v6
 
       - uses: dtolnay/rust-toolchain@stable
+
+      - name: Install nextest
+        uses: taiki-e/install-action@nextest
 
       - name: Disable mandb updating
         run: |
@@ -72,4 +84,4 @@ jobs:
       - name: Run tests
         run: |
           # Sudo is required in order to instantiate "tun"
-          sudo --preserve-env ${{ steps.tools.outputs.cargo }} test --verbose
+          sudo --preserve-env ${{ steps.tools.outputs.cargo }} nextest run --profile=ci --verbose

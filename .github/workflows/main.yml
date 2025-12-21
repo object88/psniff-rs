@@ -17,6 +17,9 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
+      - name: Install nextest
+        uses: taiki-e/install-action@nextest
+
       - name: Disable mandb updating
         run: |
           sudo rm -f /var/lib/man-db/auto-update
@@ -39,10 +42,10 @@ jobs:
       - name: Build
         run: |
           cargo build --release --verbose
-      
+
       - name: Run tests
         run: |
-          cargo test --verbose
+          cargo nextest run --verbose
 
       - name: Set final commit status
         if: always()
