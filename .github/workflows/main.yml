@@ -47,8 +47,14 @@ jobs:
         run: |
           cargo nextest run --verbose
 
+      - name: DEBUG
+        run: |
+          echo "context.job.status: ${context.job.status}"
+
       - name: Set final commit status
         if: always()
+        env:
+          STATUS: ${{ job.status }}
         uses: actions/github-script@v8
         with:
           script: |
@@ -56,8 +62,8 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               sha: context.sha,
-              state: (context.job.status == 'success' ? 'success' : 'error'),
-              description: (context.job.status == 'success' ? 'Complete' : 'Failed'),
+              state: ('${{ env.STATUS }}' == 'success' ? 'success' : 'error'),
+              description: ('${{ env.STATUS }}' == 'success' ? 'Complete' : 'Failed'),
               context: 'Build complete',
               target_url: `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`
             });

@@ -30,6 +30,7 @@ env:
 jobs:
   test:
     runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'push' || (github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'test')) }}
     steps:
       - uses: actions/checkout@v6
 
