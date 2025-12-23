@@ -28,7 +28,7 @@ pub async fn run<T: PacketHandler>(mut cancel_rx: broadcast::Receiver<()>, handl
 					}
 				};
 				match x0 {
-					ReceivedPacketData::MovingPacket { header, data } => {
+					ReceivedPacketData::MovingPacket { data, ..} => {
 						// let p = pcap::Packet{ &header, &data };
 						match SlicedPacket::from_ethernet(&data) {
 							Ok(value) => {
@@ -39,7 +39,7 @@ pub async fn run<T: PacketHandler>(mut cancel_rx: broadcast::Receiver<()>, handl
 							}
 						};
 					},
-					ReceivedPacketData::Counts { total, os_dropped, if_dropped } => {
+					ReceivedPacketData::Counts { .. } => {
 
 					},
 				}
