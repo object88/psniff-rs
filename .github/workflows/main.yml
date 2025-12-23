@@ -47,10 +47,6 @@ jobs:
         run: |
           cargo nextest run --verbose
 
-      - name: DEBUG
-        run: |
-          echo "context.job.status: ${context.job.status}"
-
       - name: Set final commit status
         if: always()
         env:
