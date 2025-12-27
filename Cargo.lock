@@ -173,12 +173,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "base64"
-version = "0.22.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "72b3254f16251a8381aa12e40e3c4d2f0199f8c6508fbecb9d91f575e0fbb8c6"
-
-[[package]]
 name = "bitflags"
 version = "1.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -258,16 +252,16 @@ checksum = "613afe47fcd5fac7ccf1db93babcb082c5994d996f20b8b159f2ad1658eb5724"
 
 [[package]]
 name = "channels-console"
-version = "0.2.3"
+version = "0.3.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "eb84333dc670d3840b4a35e6e5078f397aa288b111c376b529893a9b7ab619e5"
+checksum = "42b8fdb2a79c603e2e224c0415e9e84ab9f44c752c7b2291ce795791dc63962e"
 dependencies = [
- "base64",
  "cfg-if",
  "crossbeam-channel",
  "eyre",
  "futures-util",
  "prettytable-rs",
+ "regex",
  "serde",
  "serde_json",
  "tiny_http",
