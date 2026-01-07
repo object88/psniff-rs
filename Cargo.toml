@@ -25,7 +25,7 @@ clap = { version = "4.5.54", features = ["derive", "string"] }
 etherparse = { version = "0.19.0" }
 futures = { version = "0.3.31" }
 log = { version = "0.4.29" }
-pcap = { version = "2.3.0" }
+pcap = { version = "2.4.0" }
 pin-project = { version = "1.1.10" }
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = { version = "1.0.149" }
