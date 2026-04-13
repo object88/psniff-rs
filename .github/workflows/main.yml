@@ -51,7 +51,7 @@ jobs:
         if: always()
         env:
           STATUS: ${{ job.status }}
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9
         with:
           script: |
             github.rest.repos.createCommitStatus({
